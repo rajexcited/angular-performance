@@ -16,10 +16,10 @@ Following features/ functionalities, I'm trying to provide with graph.
   - highlight the element if possible for critical
   - no need to give id or ng-app to start test (should work for bootstrap as well)
   - records digest statistics with timeId (helps in further analysis)
-	- find $$listeners impact to application (is it covering in digest cycle?)
-	- gives suggestions/ tips for failure if possible
-	- http or AJAX or route impact on application
-	- total watches for application for each cycle to track app
-	- learn and implement memory leaking concept
-	- learn and implement memory management concept
-	- try to use ng-graph-dependancy extension feature here directly.
+  - find $$listeners impact to application (is it covering in digest cycle?)
+  - gives suggestions/ tips for failure if possible
+  - http or AJAX or route impact on application
+  - total watches for application for each cycle to track app
+  - learn and implement memory leaking concept
+  - learn and implement memory management concept
+  - try to use ng-graph-dependancy extension feature here directly.
