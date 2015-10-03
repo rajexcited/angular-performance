@@ -1,12 +1,39 @@
 {
-  "name": "AngularJS performance Statistics",
-  "version": "0.0.1",
-  "description": "learning to create devtool extension using Simple examples",
-  "devtools_page": "devToolsStatsLoader.html",
-  "manifest_version": 2,
-   "content_security_policy": "default-src 'self'  chrome-extension-resource: ; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval';  connect-src *; frame-src *;",
-    "web_accessible_resources":
-    [
-      "*"
-    ]
+    "name": "AngularJS performance Statistics",
+    "version": "0.0.1",
+    "description": "learning to create devtool extension using Simple examples",
+	
+	"content_scripts": [{
+		"matches": ["<all_urls>"],
+		"js": ["inject/content-script.js","scripts/communication.js"],
+		"run_at": "document_end"
+	  }],
+	
+	"permissions": [
+		  "tabs",
+		  "webNavigation",
+		  "<all_urls>",
+		  "alarms"
+		],
+		
+	"background": {
+		"scripts": ["scripts/communication.js","background.js"],
+		"persistent": false
+	  },
+  
+    "page_action": {
+        "default_title": "AngularJS performance Statistics"
+    },
+
+	"devtools_page": "devToolsPage.html",
+	
+    "content_security_policy": "default-src 'self'  chrome-extension-resource: ; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval';  connect-src *; frame-src *;",
+
+
+    "web_accessible_resources": [
+        "*"
+    ],
+
+    "manifest_version": 2
+
 }
