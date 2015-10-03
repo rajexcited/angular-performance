@@ -13,6 +13,7 @@ Phase:
   2. background file to run on event listeners
   3. content script to connect to background
   4. devtool inspect connect to background
+  5. 'designing, and developing communication'
 
 Clear Picture:    
   install extension >> see logs on background page
