@@ -1,56 +1,55 @@
-(function(chrome) {
+(function(chrome,AngularPerf) {
 	'use strict';
 
 // Copyright 2015
 
-	var DEVTOOL_CONNECTION = 'devtools-page',
-		BACKGROUND_CONNECTION = 'background',
-		CONTENTSCRIPT_CONNECTION = 'content-script';
-	// console.log('devtools-page is loading');
+	var devtools = AngularPerf.CONNECTION_NAME.DEVTOOL;
+	// Create a connection to the background page
+	var backgroundConnection = chrome.runtime.connect({
+	    name: devtools
+	});
+	
+	var messageToBG = AngularPerf.getMessageProtoType(devtools);
+	var sendMessage = function(info) {
+		var msg = new messageToBG(info);
+		backgroundConnection.postMessage(msg);
+	};
+	
+	// default first message on inspect tab load
+	sendMessage({
+		task : 'init'
+	});
+
+	log('devtoolsPage.js loading - '+devtools);
 	// create dev tool panel
 	chrome.devtools.panels.create(
-	    'ngPerfStats',
+	    'Angular perfStats',
 	    null, // No icon path
 	    'panel/ngPerfStatsPanel.html',
 	    null // no callback needed
 	);
-
-	// Create a connection to the background page
-	var backgroundPageConnection = chrome.runtime.connect({
-	    name: DEVTOOL_CONNECTION
+	
+	log('panel loaded');
+	// var msg2= AngularPerf.getMessageProtoType(AngularPerf.CONNECTION_NAME.CONTENTSCRIPT);
+	var taskexecutor = AngularPerf.getTaskCommunication(devtools);
+	log('prepare for message listener ');
+	backgroundConnection.onMessage.addListener(function bgMsgListener(message, sender, sendResponse)  {
+	    log('bgMsgListener');
+		// log(message);
+		// execute task
+		var taskDetails = new taskexecutor(message, sender, sendResponse, backgroundConnection);
+		log(taskDetails.getTabId());
 	});
-
-	// message constructor
-	var message = function (object) {
-		this.task = undefined;
-		this.tabId = chrome.devtools.inspectedWindow.tabId;
-		this.dest = BACKGROUND_CONNECTION;
-		if(object) {
-			// add given object to new message
-			var props = Object.getOwnPropertyNames(object);
-			var prop;
-			for(var i=0,l=props.length;i<l;i++) {
-				prop = props[i];
-				this[prop] = object[prop];
-			}
+	
+	// backgroundConnection.postMessage(new msg({ task : 'log', log:'test log.', dest: CONTENTSCRIPT_CONNECTION }));
+	// proxy log to background
+	function log(anymessage) {
+		if(AngularPerf.debugMode) {
+				sendMessage({
+					task:'log',
+					log:anymessage
+				})
 		}
-		this.source=DEVTOOL_CONNECTION;
-	};
+	}
 
-	// backgroundPageConnection.onMessage.addListener(function (message) {
-	    // Handle responses from the background page, if any
-		// console.log(message);
-	// });
-
-	// Relay the tab ID to the background page
-	// chrome.runtime.sendMessage({
-	//     tabId: ,
-	//     scriptToInject: "content_script.js"
-	// });
-
-// send init devtool message to get registered
-	backgroundPageConnection.postMessage(new message({ task : 'log', log:'test log.', dest: CONTENTSCRIPT_CONNECTION }));
-// }catch(e) {
-// 	// console.log(e);
-// }
-})(chrome);
+})(chrome,AngularPerf);

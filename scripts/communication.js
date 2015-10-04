@@ -1,49 +1,57 @@
-(function(chrome) {
+(function(chrome,privates) {
 	'use strict';
 
-	console.log('in communications');
-
 	var perf = window.AngularPerf = {
-		CONNECTION_NAME : {
-			DEVTOOL : 'devtools-page',
-			BACKGROUND : 'background',
-			CONTENTSCRIPT : 'content-script'
-		},
-		debugMode : true
-	};
+					CONNECTION_NAME : {
+						DEVTOOL : 'devtools-page',
+						BACKGROUND : 'background',
+						CONTENTSCRIPT : 'content-script'
+					},
+					debugMode : true
+				};
 
+	log('communication.js loading');
+	
 	var basicProtoTask = function() {
-
-		this.initTabConnection = function() {
-			var tabId = this.getTabId();
-			connectionHolder.tabs[tabId] = connectionHolder.tabs[tabId] || {};
-			connectionHolder.tabs[tabId][this.connectingPort.name] = connectingPort;
-		};
+		var debugMode = perf.debugMode;
 		
+		// retrieve tabId from any connection message
 		this.getTabId = function() {
-			return (this.connectingPort.sender.tab && this.connectingPort.sender.tab.id) || (this.message.tabId);
+			// devtools always get from inpected tab or message
+			return this.message.tabId || (this.connectingPort.sender.tab && this.connectingPort.sender.tab.id);
 		};
 
+		// log message task 
 		this.log = function() {
-			if(isDebugMode) {
-				console.log(this.message.log);
-			}
+			this.logger(this.message.log || this.message);
 		};
+
+		// task logger used by any
+		this.logger = function (messageLog) {
+			if(debugMode) {
+				console.log(messageLog);
+			}
+		}
 
 	};
 
+// used for any
 	var basicConstructor = function () {
 		var message = this.message = arguments[0][0];
 		this.sender= arguments[0][1];
 		this.sendResponse = arguments[0][2];
 		this.connectingPort = arguments[0][3];
-		
+		var destPort = arguments[0][4];
+		var cb = arguments[0][5];
+
+		// log(' basicConstructor Context:');
+		// log(this);
+		// execute task for given destination
 		if(message.task && this[message.task]) {
-			var tabId = this.getTabId();
-			var destPort = connectionHolder.tabs[tabId] && connectionHolder.tabs[tabId][message.dest];
-			if(!destPort) {
-				this[message.task].apply(this);
+			if(!destPort || destPort === this.connectingPort) {
+				this[message.task].apply(this,cb);
 			} else {
+				log('posting message to destPort acting as a median');
 				destPort.postMessage(message);
 			}
 		}
@@ -53,9 +61,10 @@
 // create extecutable task base prototype for devtools
 	var devtoolsProtoTask = function() {
 		// task function
-		this.init = function() {
+		this.init = function(cb) {
 			// if content script is loaded, ask
-			this.initTabConnection();
+			if(typeof cb === 'function') 
+				cb('init');
 		};
 	};
 
@@ -66,8 +75,14 @@
 	devtoolsProtoTask.prototype = new basicProtoTask;
 	devtoolsTask.prototype = new devtoolsProtoTask;
 	devtoolsTask.prototype.constructor = devtoolsTask;
-
-// create extecutable task base prototype for devtools
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+/////////////           CONTENT   SCRIPT    //////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+// create extecutable task base prototype for content scripts
 	var contentScriptProtoTask = function() {
 		// task function
 	};
@@ -81,36 +96,18 @@
 	contentScriptTask.prototype.constructor = contentScriptTask;
 
 	perf.getTaskCommunication = function (channel) {
-		var commun;
+		var commun = function(){};
 		if(channel===perf.CONNECTION_NAME.DEVTOOL) {
-			commun = Object.create(devtoolsTask.prototype);
+			commun = devtoolsTask;
 		} else if(channel===perf.CONNECTION_NAME.CONTENTSCRIPT) {
-			commun = Object.create(contentScriptTask.prototype);
+			commun = contentScriptTask;
 		}
 
 		return commun;
 	};
 
-
-	// message constructor
-	var message = function (object) {
-		this.task = undefined;
-		this.tabId = chrome.devtools.inspectedWindow.tabId;
-		this.dest = BACKGROUND_CONNECTION;
-		if(object) {
-			// add given object to new message
-			var props = Object.getOwnPropertyNames(object);
-			var prop;
-			for(var i=0,l=props.length;i<l;i++) {
-				prop = props[i];
-				this[prop] = object[prop];
-			}
-		}
-		this.source=DEVTOOL_CONNECTION;
-	};
-
 // message constructor
-	var message = function (object) {
+	var messageImpl = function (object) {
 		this.task = undefined;
 		this.tabId = chrome.devtools && chrome.devtools.inspectedWindow && chrome.devtools.inspectedWindow.tabId;
 		// this.dest = channel;
@@ -123,13 +120,25 @@
 				this[prop] = object[prop];
 			}
 		}
+		
 		// this.source=channel;
 	};
 
-	perf.getMessageProtoType = function(channel) {
-		Object.defineProperty(message,'channel', {
-	    	get : function() {    return channel;  }
-		});
-		return message;
+	perf.getMessageProtoType = function(channel,dest) {
+		perf.CONNECTION_NAME.BACKGROUND;
+		return function message(extraMsg) {
+			this.source = channel;
+			this.dest = dest || perf.CONNECTION_NAME.BACKGROUND;
+			this.name = 'message';
+			messageImpl.call(this,extraMsg);
+		};
+	};
+
+	
+	function log(anymessage) {
+		if(perf.debugMode) {
+			console.log(anymessage);
+		}
 	}
+
 })(chrome);

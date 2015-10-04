@@ -5,7 +5,7 @@
 	
 	"content_scripts": [{
 		"matches": ["<all_urls>"],
-		"js": ["inject/content-script.js","scripts/communication.js"],
+		"js": ["scripts/communication.js","inject/content-script.js"],
 		"run_at": "document_end"
 	  }],
 	

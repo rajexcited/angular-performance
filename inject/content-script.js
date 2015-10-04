@@ -1,23 +1,40 @@
-(function(){
+(function(chrome,AngularPerf){
 	'use script';
 
-	var backgroundPageConnection = chrome.runtime.connect({
-		name : 'content-script'
+// Copyright 2015
+
+	log('content-script.js loading');
+
+	var contentScript = AngularPerf.CONNECTION_NAME.CONTENTSCRIPT;
+	var backgroundConnection = chrome.runtime.connect({
+		name : contentScript
 	});
-	
-	// message constructor
-	var message = function (object) {
-		if(object) {
-			return object;
-		}
-		this.task = undefined;		
+
+	log('prepare for init message');	
+	var messageToBG = AngularPerf.getMessageProtoType(contentScript);
+	var sendMessage = function(info) {
+		var msg = new messageToBG(info);
+		backgroundConnection.postMessage(msg);
 	};
 
-	// backgroundPageConnection.postMessage({
-	// 	task: 'init'
-	// });
-	// chrome.runtime.sendMessage({
-	//     scriptToInject: "init content_script"
-	// })
+	sendMessage({
+		task: 'init'
+	});
 
-})();
+	log('message sent. Now listen message.');
+	var taskexecutor = AngularPerf.getTaskCommunication(contentScript);
+	backgroundConnection.onMessage.addListener(function bgMsgListener(message, sender, sendResponse)  {
+		// in background message listener
+	    log('bgMsgListener');
+		// execute task
+		var taskDetails = new taskexecutor(message, sender, sendResponse, backgroundConnection);
+		log(taskDetails.getTabId());
+	});
+
+	function log(anymessage) {
+		if(AngularPerf.debugMode) {
+			console.log(anymessage);
+		}
+	}
+
+})(chrome,AngularPerf);
