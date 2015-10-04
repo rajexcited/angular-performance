@@ -27,4 +27,10 @@ Scenario:
     switch tabs >>>
     close tabs.
 
-### Goal 3: Create devTool panel on conditions
+### Goal 3: Detect angular on content script
+Phase:
+  1. init content script with onload event
+  2. detect angular page 
+  
+### Goal 4: Create devTool panel on conditions
+  
