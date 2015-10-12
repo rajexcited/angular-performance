@@ -1,4 +1,5 @@
-# angular-performance
+# further development in [AngularJS Birbal] (https://github.com/rajexcited/AngularJS-Birbal)
+## angular-performance
 angularJS performance statistics, chrome extension for developers
 
 It is in initial phase of developement.
